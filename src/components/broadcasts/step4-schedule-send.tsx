@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Send, Loader2, Users, Save } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Users, Save, Clock, Calendar } from 'lucide-react';
 
 interface AudienceConfig {
   type: string;
@@ -32,6 +32,8 @@ interface Step4Props {
   onBack: () => void;
   isProcessing: boolean;
   progress: number;
+  scheduledAt: string | null;
+  onScheduledAtChange: (val: string | null) => void;
 }
 
 export function Step4ScheduleSend({
@@ -44,10 +46,13 @@ export function Step4ScheduleSend({
   onBack,
   isProcessing,
   progress,
+  scheduledAt,
+  onScheduledAtChange,
 }: Step4Props) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [estimatedReach, setEstimatedReach] = useState<number>(0);
   const [loadingReach, setLoadingReach] = useState(true);
+  const [scheduleLater, setScheduleLater] = useState(!!scheduledAt);
 
   useEffect(() => {
     async function calculateReach() {
@@ -81,6 +86,19 @@ export function Step4ScheduleSend({
     calculateReach();
   }, [audience]);
 
+  const handleToggleSchedule = (val: boolean) => {
+    setScheduleLater(val);
+    if (!val) {
+      onScheduledAtChange(null);
+    } else {
+      const date = new Date(Date.now() + 60 * 60 * 1000);
+      date.setSeconds(0, 0);
+      const tzOffset = date.getTimezoneOffset() * 60000;
+      const localISOTime = new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+      onScheduledAtChange(localISOTime);
+    }
+  };
+
   const audienceLabel =
     audience.type === 'all'
       ? 'All Contacts'
@@ -99,7 +117,6 @@ export function Step4ScheduleSend({
         </p>
       </div>
 
-      {/* Broadcast Name */}
       <div>
         <label className="mb-1.5 block text-sm font-medium text-white">Broadcast Name</label>
         <Input
@@ -110,7 +127,63 @@ export function Step4ScheduleSend({
         />
       </div>
 
-      {/* Summary Card */}
+      <div className="space-y-3">
+        <label className="block text-sm font-medium text-white font-semibold">Delivery Schedule</label>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => handleToggleSchedule(false)}
+            className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all ${
+              !scheduleLater
+                ? 'border-primary bg-primary/10 text-white shadow-lg shadow-primary/10'
+                : 'border-slate-800 bg-slate-900/50 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+            }`}
+          >
+            <Send className="mt-0.5 h-4 w-4" />
+            <div>
+              <p className="text-sm font-semibold">Send Immediately</p>
+              <p className="mt-0.5 text-xs text-slate-400/80">Deliver as soon as possible</p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleToggleSchedule(true)}
+            className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all ${
+              scheduleLater
+                ? 'border-primary bg-primary/10 text-white shadow-lg shadow-primary/10'
+                : 'border-slate-800 bg-slate-900/50 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+            }`}
+          >
+            <Clock className="mt-0.5 h-4 w-4" />
+            <div>
+              <p className="text-sm font-semibold">Schedule for Later</p>
+              <p className="mt-0.5 text-xs text-slate-400/80">Deliver at a specific date & time</p>
+            </div>
+          </button>
+        </div>
+
+        {scheduleLater && (
+          <div className="animate-in fade-in slide-in-from-top-4 duration-300 rounded-xl border border-slate-800 bg-slate-900/40 p-4 backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1">
+                <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <input
+                  type="datetime-local"
+                  value={scheduledAt ?? ''}
+                  onChange={(e) => onScheduledAtChange(e.target.value || null)}
+                  min={new Date().toISOString().slice(0, 16)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-700 bg-slate-800/80 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder-slate-500"
+                />
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-slate-400">
+              Select your desired delivery date and time (local timezone).
+            </p>
+          </div>
+        )}
+      </div>
+
       <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 space-y-3">
         <p className="text-sm font-medium text-white">Summary</p>
         <div className="grid grid-cols-2 gap-3 text-sm">
@@ -142,13 +215,14 @@ export function Step4ScheduleSend({
         </div>
       </div>
 
-      {/* Processing overlay */}
       {isProcessing && (
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <p className="text-sm font-medium text-white">Sending broadcast...</p>
+              <p className="text-sm font-medium text-white">
+                {scheduleLater ? 'Scheduling broadcast...' : 'Sending broadcast...'}
+              </p>
             </div>
             <span className="text-xs font-medium text-primary">{progress}%</span>
           </div>
@@ -186,49 +260,61 @@ export function Step4ScheduleSend({
           )}
 
           <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
-          <DialogTrigger
-            render={
-              <Button
-                disabled={!name.trim() || isProcessing}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-              />
-            }
-          >
-            <Send className="h-4 w-4" />
-            Send Broadcast
-          </DialogTrigger>
-          <DialogContent className="border-slate-700 bg-slate-900 sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-white">Confirm Broadcast</DialogTitle>
-              <DialogDescription className="text-slate-400">
-                You are about to send this broadcast to{' '}
-                <span className="font-medium text-white">{estimatedReach.toLocaleString()}</span>{' '}
-                contacts using the{' '}
-                <span className="font-medium text-white">{template.name}</span> template.
-                This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setShowConfirm(false)}
-                className="border-slate-700 text-slate-300"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  setShowConfirm(false);
-                  onSend();
-                }}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                <Send className="h-4 w-4" />
-                Confirm & Send
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            <DialogTrigger
+              render={
+                <Button
+                  disabled={!name.trim() || isProcessing || (scheduleLater && !scheduledAt)}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                />
+              }
+            >
+              {scheduleLater ? <Clock className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+              {scheduleLater ? 'Schedule Broadcast' : 'Send Broadcast'}
+            </DialogTrigger>
+            <DialogContent className="border-slate-700 bg-slate-900 sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-white">
+                  {scheduleLater ? 'Confirm Scheduled Broadcast' : 'Confirm Broadcast'}
+                </DialogTitle>
+                <DialogDescription className="text-slate-400">
+                  You are about to {scheduleLater ? 'schedule' : 'send'} this broadcast to{' '}
+                  <span className="font-medium text-white">{estimatedReach.toLocaleString()}</span>{' '}
+                  contacts using the{' '}
+                  <span className="font-medium text-white">{template.name}</span> template
+                  {scheduleLater && scheduledAt ? (
+                    <>
+                      {' '}for{' '}
+                      <span className="font-medium text-white">
+                        {new Date(scheduledAt).toLocaleString()}
+                      </span>
+                    </>
+                  ) : (
+                    '.'
+                  )}
+                  {!scheduleLater && ' This action cannot be undone.'}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowConfirm(false)}
+                  className="border-slate-700 text-slate-300"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowConfirm(false);
+                    onSend();
+                  }}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  {scheduleLater ? <Clock className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+                  {scheduleLater ? 'Confirm & Schedule' : 'Confirm & Send'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>

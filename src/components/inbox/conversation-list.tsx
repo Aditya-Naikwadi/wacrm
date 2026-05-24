@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, memo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Conversation, ConversationStatus } from "@/types";
@@ -220,7 +220,7 @@ interface ConversationItemProps {
   onSelect: (conversation: Conversation) => void;
 }
 
-function ConversationItem({
+function ConversationItemComponent({
   conversation,
   isActive,
   onSelect,
@@ -291,3 +291,16 @@ function ConversationItem({
     </button>
   );
 }
+
+export const ConversationItem = memo(ConversationItemComponent, (prev, next) => {
+  return (
+    prev.isActive === next.isActive &&
+    prev.conversation.id === next.conversation.id &&
+    prev.conversation.status === next.conversation.status &&
+    prev.conversation.unread_count === next.conversation.unread_count &&
+    prev.conversation.last_message_text === next.conversation.last_message_text &&
+    prev.conversation.last_message_at === next.conversation.last_message_at &&
+    prev.conversation.contact?.avatar_url === next.conversation.contact?.avatar_url &&
+    prev.conversation.contact?.name === next.conversation.contact?.name
+  );
+});

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import { cn } from "@/lib/utils";
 import type { Message, MessageReaction } from "@/types";
 import {
@@ -241,7 +241,7 @@ function MessageContent({ message }: { message: Message }) {
   }
 }
 
-export function MessageBubble({
+function MessageBubbleComponent({
   message,
   reply,
   reactions,
@@ -292,3 +292,29 @@ export function MessageBubble({
     </div>
   );
 }
+
+export const MessageBubble = memo(MessageBubbleComponent, (prev, next) => {
+  const prevReactions = prev.reactions;
+  const nextReactions = next.reactions;
+
+  const reactionsEqual = 
+    (!prevReactions && !nextReactions) ||
+    (!!prevReactions && !!nextReactions && 
+     prevReactions.length === nextReactions.length &&
+     prevReactions.every((r, i) => {
+       const nextDep = nextReactions[i];
+       return nextDep ? (r.id === nextDep.id && r.emoji === nextDep.emoji) : false;
+     }));
+
+  return (
+    prev.currentUserId === next.currentUserId &&
+    prev.message.id === next.message.id &&
+    prev.message.status === next.message.status &&
+    prev.message.content_text === next.message.content_text &&
+    prev.message.content_type === next.message.content_type &&
+    prev.message.media_url === next.message.media_url &&
+    prev.reply?.authorLabel === next.reply?.authorLabel &&
+    prev.reply?.preview === next.reply?.preview &&
+    reactionsEqual
+  );
+});

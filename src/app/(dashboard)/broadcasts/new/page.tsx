@@ -40,6 +40,7 @@ export default function NewBroadcastPage() {
     Record<string, { type: 'static' | 'field' | 'custom_field'; value: string }>
   >({});
   const [name, setName] = useState('');
+  const [scheduledAt, setScheduledAt] = useState<string | null>(null);
 
   async function handleSend() {
     if (!template) return;
@@ -56,26 +57,17 @@ export default function NewBroadcastPage() {
           excludeTagIds: audience.excludeTagIds,
         },
         variables,
+        scheduledAt,
       });
       router.push(`/broadcasts/${broadcastId}`);
     } catch (err) {
-      // Previously swallowed with console.error — the wizard would
-      // just no-op, leaving the user confused. Surface the reason.
+      // Surface the reason to the user.
       const message = err instanceof Error ? err.message : 'Broadcast failed';
       console.error('Broadcast failed:', err);
       toast.error(message);
     }
   }
 
-  /**
-   * Writes a draft broadcast row — no recipients, no sending. The user
-   * can revisit it via the list page to finish the flow later. We
-   * don't persist the in-progress audience/variable config here
-   * because the current schema doesn't carry it past `audience_filter`
-   * and `template_variables`; those are enough for the user to
-   * recognize the draft but not to exactly round-trip into the wizard.
-   * A full resume-draft UX is a future polish.
-   */
   async function handleSaveDraft() {
     if (!template || !name.trim()) {
       toast.error('Give the broadcast a name before saving a draft.');
@@ -120,7 +112,6 @@ export default function NewBroadcastPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-white">New Broadcast</h1>
         <p className="mt-1 text-sm text-slate-400">
@@ -128,7 +119,6 @@ export default function NewBroadcastPage() {
         </p>
       </div>
 
-      {/* Step Indicator */}
       <div className="flex items-center justify-between">
         {steps.map((step, index) => {
           const isActive = index === currentStep;
@@ -168,7 +158,6 @@ export default function NewBroadcastPage() {
         })}
       </div>
 
-      {/* Step Content */}
       <div className="relative min-h-[400px]">
         <div
           className="transition-all duration-300 ease-in-out"
@@ -213,6 +202,8 @@ export default function NewBroadcastPage() {
               onBack={() => setCurrentStep(2)}
               isProcessing={isProcessing}
               progress={progress}
+              scheduledAt={scheduledAt}
+              onScheduledAtChange={setScheduledAt}
             />
           )}
         </div>

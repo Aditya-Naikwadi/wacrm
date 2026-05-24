@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, type ReactNode, memo } from "react";
 import { CornerUpLeft, Copy, SmilePlus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,7 @@ interface MessageActionsProps {
  * itself stays a pure presenter — this component owns the action surface so
  * the bubble's render path is unaffected when the toolbar isn't visible.
  */
-export function MessageActions({
+function MessageActionsComponent({
   message,
   onReply,
   onReact,
@@ -141,3 +141,12 @@ export function MessageActions({
     </div>
   );
 }
+
+export const MessageActions = memo(MessageActionsComponent, (prev, next) => {
+  return (
+    prev.message.id === next.message.id &&
+    prev.message.status === next.message.status &&
+    prev.message.content_text === next.message.content_text &&
+    prev.message.content_type === next.message.content_type
+  );
+});

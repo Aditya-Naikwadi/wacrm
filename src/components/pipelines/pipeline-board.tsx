@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, memo } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -164,7 +164,7 @@ export function PipelineBoard({
   );
 }
 
-function StageColumn({
+function StageColumnComponent({
   stage,
   deals,
   totalValue,
@@ -239,7 +239,24 @@ function StageColumn({
   );
 }
 
-function DraggableDealCard({
+const StageColumn = memo(StageColumnComponent, (prev, next) => {
+  return (
+    prev.stage.id === next.stage.id &&
+    prev.stage.name === next.stage.name &&
+    prev.stage.color === next.stage.color &&
+    prev.totalValue === next.totalValue &&
+    prev.deals.length === next.deals.length &&
+    prev.deals.every(
+      (d, i) =>
+        d.id === next.deals[i]?.id &&
+        d.status === next.deals[i]?.status &&
+        d.value === next.deals[i]?.value &&
+        d.title === next.deals[i]?.title,
+    )
+  );
+});
+
+function DraggableDealCardComponent({
   deal,
   stage,
   onEdit,
@@ -263,3 +280,14 @@ function DraggableDealCard({
     </div>
   );
 }
+
+const DraggableDealCard = memo(DraggableDealCardComponent, (prev, next) => {
+  return (
+    prev.deal.id === next.deal.id &&
+    prev.deal.title === next.deal.title &&
+    prev.deal.value === next.deal.value &&
+    prev.deal.status === next.deal.status &&
+    prev.stage.id === next.stage.id &&
+    prev.stage.color === next.stage.color
+  );
+});

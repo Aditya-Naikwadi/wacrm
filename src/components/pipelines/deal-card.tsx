@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import type { Deal, PipelineStage } from "@/types";
 import { Calendar, Check, X } from "lucide-react";
 
@@ -33,7 +34,7 @@ function initials(name?: string, fallback?: string) {
   return source.charAt(0).toUpperCase();
 }
 
-export function DealCard({ deal, stage, onEdit, isOverlay }: DealCardProps) {
+function DealCardComponent({ deal, stage, onEdit, isOverlay }: DealCardProps) {
   const contactLabel = deal.contact?.name || deal.contact?.phone || "No contact";
   const assigneeLabel = deal.assignee?.full_name || null;
 
@@ -111,3 +112,20 @@ export function DealCard({ deal, stage, onEdit, isOverlay }: DealCardProps) {
     </button>
   );
 }
+
+export const DealCard = memo(DealCardComponent, (prev, next) => {
+  return (
+    prev.isOverlay === next.isOverlay &&
+    prev.deal.id === next.deal.id &&
+    prev.deal.title === next.deal.title &&
+    prev.deal.value === next.deal.value &&
+    prev.deal.status === next.deal.status &&
+    prev.deal.stage_id === next.deal.stage_id &&
+    prev.deal.expected_close_date === next.deal.expected_close_date &&
+    prev.deal.contact?.name === next.deal.contact?.name &&
+    prev.deal.contact?.phone === next.deal.contact?.phone &&
+    prev.deal.assignee?.full_name === next.deal.assignee?.full_name &&
+    prev.stage?.id === next.stage?.id &&
+    prev.stage?.color === next.stage?.color
+  );
+});
